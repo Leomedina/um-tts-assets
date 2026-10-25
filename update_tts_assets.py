@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """
-Automates syncing local Unmatched TTS assets to the GitHub repo (um-tts-assets),
-tracking per-file cache-busting versions (?v=N), updating README.md + Changelog
-(added, updated, or removed assets/cards), and updating the Unmatched Official
-Tournament Table JSON file.
+Script 1 of 2: Asset Sync & TTS Table JSON Updater (`update_tts_assets.py`)
+
+Syncs local Unmatched TTS assets from um_evergreen to the GitHub repo (um-tts-assets),
+checks which files changed via SHA-256, bumps cache-busting versions (?v=N),
+updates the Asset Inventory in README.md, commits/pushes to GitHub, and updates
+the Unmatched Official Tournament Table JSON file.
+
+(For syncing character balance notes / changelogs, use `update_balance_notes.py`.)
 
 Usage examples:
   python3 update_tts_assets.py --season buffy
   python3 update_tts_assets.py --season season-1
   python3 update_tts_assets.py --season season-2
   python3 update_tts_assets.py --all
-  python3 update_tts_assets.py --season buffy --note "Updated Willow card values"
   python3 update_tts_assets.py --season season-1 --dry-run
 """
 
@@ -23,7 +26,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 # ==============================================================================
 # CONFIGURATION — Change TABLE_NAME when a new tournament table is released
@@ -43,7 +46,6 @@ README_FILE = REPO_DIR / "README.md"
 
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Leomedina/um-tts-assets/main/assets"
 
-CHANGELOG_START_MARKER = "<!-- CHANGELOG_ENTRIES_START -->"
 INVENTORY_START_MARKER = "<!-- ASSET_INVENTORY_START -->"
 INVENTORY_END_MARKER = "<!-- ASSET_INVENTORY_END -->"
 
@@ -236,7 +238,6 @@ SEASON_ASSETS: Dict[str, List[dict]] = {
 def slugify_filename(filename: str) -> str:
     stem = Path(filename).stem.lstrip("_")
     ext = Path(filename).suffix.lower()
-    # Replace & with -and-, camelCase to kebab-case, spaces/underscores to hyphens
     stem = stem.replace("&", "-and-")
     stem = re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", stem)
     stem = re.sub(r"[^a-zA-Z0-9]+", "-", stem).strip("-").lower()
@@ -265,15 +266,11 @@ def save_versions(versions: Dict[str, dict]) -> None:
 
 
 def discover_unmapped_files(season: str, known_sources: Set[Path], known_repo_rels: Set[str]) -> List[dict]:
-    """
-    Checks the local _final_tts folder for any newly added image files not yet in SEASON_ASSETS,
-    so new character sheets/cards added to _final_tts are automatically picked up.
-    """
     extra_specs = []
     if season not in SEASON_SOURCE_DIRS:
         return extra_specs
 
-    src_dir, repo_Subdir = SEASON_SOURCE_DIRS[season]
+    src_dir, repo_subdir = SEASON_SOURCE_DIRS[season]
     if not src_dir.exists():
         return extra_specs
 
@@ -285,7 +282,7 @@ def discover_unmapped_files(season: str, known_sources: Set[Path], known_repo_re
         if p in known_sources:
             continue
         slug = slugify_filename(p.name)
-        repo_rel = f"{repo_Subdir}/{slug}"
+        repo_rel = f"{repo_subdir}/{slug}"
         if repo_rel not in known_repo_rels:
             extra_specs.append(
                 {
@@ -317,52 +314,22 @@ def build_inventory_markdown(versions: Dict[str, dict]) -> str:
     return "\n".join(lines)
 
 
-def update_readme(
-    versions: Dict[str, dict],
-    added: List[str],
-    updated: List[str],
-    removed: List[str],
-    note: Optional[str],
-    dry_run: bool,
-) -> bool:
-    """
-    Updates the Asset Inventory table and prepends a Changelog entry in README.md
-    if any assets were added, updated, or removed, or if --note was supplied.
-    Returns True if README.md was modified.
-    """
+def update_readme_inventory(versions: Dict[str, dict], dry_run: bool) -> bool:
     if not README_FILE.exists():
         return False
 
     content = README_FILE.read_text(encoding="utf-8")
-    orig_content = content
+    if INVENTORY_START_MARKER not in content or INVENTORY_END_MARKER not in content:
+        return False
 
-    # 1. Update inventory table
-    if INVENTORY_START_MARKER in content and INVENTORY_END_MARKER in content:
-        before, rest = content.split(INVENTORY_START_MARKER, 1)
-        _, after = rest.split(INVENTORY_END_MARKER, 1)
-        inventory_md = build_inventory_markdown(versions)
-        content = f"{before}{INVENTORY_START_MARKER}\n{inventory_md}\n{INVENTORY_END_MARKER}{after}"
+    before, rest = content.split(INVENTORY_START_MARKER, 1)
+    _, after = rest.split(INVENTORY_END_MARKER, 1)
+    inventory_md = build_inventory_markdown(versions)
+    new_content = f"{before}{INVENTORY_START_MARKER}\n{inventory_md}\n{INVENTORY_END_MARKER}{after}"
 
-    # 2. Prepend changelog entry if anything changed or a note was provided
-    if (added or updated or removed or note) and CHANGELOG_START_MARKER in content:
-        now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        entry_lines = [f"### {now_str}"]
-        if note:
-            entry_lines.append(f"- **Note:** {note}")
-        for item in added:
-            entry_lines.append(f"- **Added:** {item}")
-        for item in updated:
-            entry_lines.append(f"- **Updated:** {item}")
-        for item in removed:
-            entry_lines.append(f"- **Removed:** {item}")
-        entry_block = "\n".join(entry_lines) + "\n"
-
-        before, after = content.split(CHANGELOG_START_MARKER, 1)
-        content = f"{before}{CHANGELOG_START_MARKER}\n\n{entry_block}{after}"
-
-    if content != orig_content:
+    if new_content != content:
         if not dry_run:
-            README_FILE.write_text(content, encoding="utf-8")
+            README_FILE.write_text(new_content, encoding="utf-8")
         return True
     return False
 
@@ -377,11 +344,6 @@ def get_table_paths() -> List[Path]:
 
 
 def update_fighter_bag_urls(bag_obj: dict, deck_slot: str, new_url: str) -> int:
-    """
-    Walks a fighter bag's ContainedObjects (excluding the outer bag's ChildObjects
-    pick/ban preview card) and updates all CustomDeck[deck_slot]["FaceURL"] entries
-    to new_url. Returns the number of replacements made.
-    """
     replacements = 0
 
     def walk(node):
@@ -404,7 +366,7 @@ def update_fighter_bag_urls(bag_obj: dict, deck_slot: str, new_url: str) -> int:
     return replacements
 
 
-def git_commit_and_push(changed_rel_paths: List[str], dry_run: bool, no_push: bool) -> None:
+def git_commit_and_push(changed_rel_paths: List[str], selected_seasons: List[str], dry_run: bool, no_push: bool) -> None:
     if dry_run:
         print("\n[DRY-RUN] Skipping git commit & push.")
         return
@@ -421,16 +383,23 @@ def git_commit_and_push(changed_rel_paths: List[str], dry_run: bool, no_push: bo
         print("\n[GIT] Working tree clean — nothing new to commit.")
         return
 
-    subprocess.run(["git", "add", "assets", "versions.json", "README.md", "update_tts_assets.py"], cwd=REPO_DIR, check=True)
+    subprocess.run(
+        ["git", "add", "assets", "versions.json", "README.md", "update_tts_assets.py"],
+        cwd=REPO_DIR,
+        check=True,
+    )
     diff_cached = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=REPO_DIR)
     if diff_cached.returncode == 0:
         print("\n[GIT] No staged changes to commit.")
         return
 
-    summary = ", ".join(Path(p).name for p in changed_rel_paths[:5])
-    if len(changed_rel_paths) > 5:
-        summary += f" (+{len(changed_rel_paths) - 5} more)"
-    msg = f"Update TTS assets: {summary}" if changed_rel_paths else "Update TTS asset versions & changelog"
+    if changed_rel_paths:
+        summary = ", ".join(Path(p).name for p in changed_rel_paths[:5])
+        if len(changed_rel_paths) > 5:
+            summary += f" (+{len(changed_rel_paths) - 5} more)"
+        msg = f"Update TTS assets ({', '.join(selected_seasons)}): {summary}"
+    else:
+        msg = f"Update TTS asset versions ({', '.join(selected_seasons)})"
 
     subprocess.run(["git", "commit", "-m", msg], cwd=REPO_DIR, check=True)
     print(f"\n[GIT] Committed: {msg}")
@@ -443,7 +412,7 @@ def git_commit_and_push(changed_rel_paths: List[str], dry_run: bool, no_push: bo
 def main() -> None:
     valid_seasons = list(SEASON_ASSETS.keys())
     parser = argparse.ArgumentParser(
-        description="Sync local Unmatched TTS assets to GitHub, update README changelog, and update the TTS Tournament Table JSON."
+        description="Sync local Unmatched TTS assets to GitHub and update the TTS Tournament Table JSON."
     )
     parser.add_argument(
         "-s",
@@ -457,13 +426,6 @@ def main() -> None:
         "--all",
         action="store_true",
         help="Update all evergreen seasons/groups (buffy, season-1, season-2).",
-    )
-    parser.add_argument(
-        "-m",
-        "--note",
-        type=str,
-        default=None,
-        help="Optional changelog note describing card additions/removals/balance changes.",
     )
     parser.add_argument(
         "--force-bump",
@@ -496,19 +458,16 @@ def main() -> None:
             if s not in selected_seasons:
                 selected_seasons.append(s)
 
+    today_str = datetime.date.today().isoformat()
+
     print(f"Target Table : {TABLE_NAME}")
     print(f"Seasons      : {', '.join(selected_seasons)}")
-    if args.note:
-        print(f"Note         : {args.note}")
     if args.dry_run:
         print("Mode         : DRY RUN (no files will be modified)")
     print("-" * 72)
 
     versions = load_versions()
     changed_repo_files: List[str] = []
-    changelog_added: List[str] = []
-    changelog_updated: List[str] = []
-    changelog_removed: List[str] = []
     json_updates_to_apply: List[Tuple[str, List[str], str, str]] = []
 
     for season in selected_seasons:
@@ -517,10 +476,8 @@ def main() -> None:
         known_sources = {s["source"] for s in specs}
         known_repo_rels = {s["repo_rel"] for s in specs}
 
-        # Auto-discover any newly added TTS sheets in the season's _final_tts folder
         extra_specs = discover_unmapped_files(season, known_sources, known_repo_rels)
         specs.extend(extra_specs)
-        known_repo_rels.update(s["repo_rel"] for s in extra_specs)
 
         for spec in specs:
             name = spec["name"]
@@ -531,9 +488,7 @@ def main() -> None:
 
             if not src.exists():
                 if dest.exists():
-                    # File was removed from local source folder -> remove from repo & log
                     print(f"  [REMOVED                 ] {name:24s} -> removed assets/{repo_rel}")
-                    changelog_removed.append(f"`assets/{repo_rel}` ({name})")
                     changed_repo_files.append(repo_rel)
                     versions.pop(repo_rel, None)
                     if not args.dry_run:
@@ -548,22 +503,27 @@ def main() -> None:
 
             entry = versions.get(repo_rel, {})
             current_ver = int(entry.get("version", 1))
+            last_updated = entry.get("last_updated", today_str)
+            history: List[dict] = list(entry.get("history", [{"version": current_ver, "date": last_updated}]))
 
             if not dest_exists:
                 new_ver = 1
                 status_label = f"ADDED (v{new_ver})"
                 file_changed = True
-                changelog_added.append(f"`assets/{repo_rel}` ({name}, `v{new_ver}`)")
+                last_updated = today_str
+                history = [{"version": new_ver, "date": today_str}]
             elif src_hash != dest_hash:
                 new_ver = current_ver + 1
                 status_label = f"CHANGED (v{current_ver} -> v{new_ver})"
                 file_changed = True
-                changelog_updated.append(f"`assets/{repo_rel}` ({name}, `v{current_ver}` -> `v{new_ver}`)")
+                last_updated = today_str
+                history.append({"version": new_ver, "date": today_str})
             elif args.force_bump:
                 new_ver = current_ver + 1
                 status_label = f"FORCE-BUMPED (v{current_ver} -> v{new_ver})"
                 file_changed = True
-                changelog_updated.append(f"`assets/{repo_rel}` ({name}, `v{current_ver}` -> `v{new_ver}` [forced])")
+                last_updated = today_str
+                history.append({"version": new_ver, "date": today_str})
             else:
                 new_ver = current_ver
                 status_label = f"UNCHANGED (v{new_ver})"
@@ -581,6 +541,8 @@ def main() -> None:
             versions[repo_rel] = {
                 "version": new_ver,
                 "sha256": src_hash,
+                "last_updated": last_updated,
+                "history": history,
             }
 
             if spec["fighter_guids"] and spec["deck_slot"]:
@@ -592,21 +554,15 @@ def main() -> None:
     if not args.dry_run:
         save_versions(versions)
 
-    readme_updated = update_readme(
-        versions=versions,
-        added=changelog_added,
-        updated=changelog_updated,
-        removed=changelog_removed,
-        note=args.note,
+    update_readme_inventory(versions=versions, dry_run=args.dry_run)
+
+    git_commit_and_push(
+        changed_rel_paths=changed_repo_files,
+        selected_seasons=selected_seasons,
         dry_run=args.dry_run,
+        no_push=args.no_push,
     )
-    if readme_updated:
-        print("\n[README] Updated README.md asset inventory and changelog.")
 
-    # Commit and push repo changes if any
-    git_commit_and_push(changed_repo_files, dry_run=args.dry_run, no_push=args.no_push)
-
-    # Update the TTS Tournament Table JSON file(s)
     if json_updates_to_apply:
         table_paths = get_table_paths()
         if not table_paths:

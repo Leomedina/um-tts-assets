@@ -6,31 +6,45 @@ All assets are served via raw GitHub URLs with cache-busting query strings (`?v=
 
 ---
 
-## How to Update Assets & TTS Table JSON
+## Workflow Scripts
 
-Run `update_tts_assets.py` from `/Users/leomedina/Documents/unmatched/um-tts-assets`:
+This repository uses two separate scripts:
+
+### 1. `update_tts_assets.py` (Sync Assets & Update TTS Table JSON)
+Compares local TTS assets against the repo via SHA-256, copies changed files, bumps `?v=N` version numbers, pushes to GitHub, and updates the URLs in your TTS Tournament Table `.json` file.
 
 ```bash
-# Update a single group / season
+# Update assets & TTS table JSON for a single season/group
 python3 update_tts_assets.py --season buffy
 python3 update_tts_assets.py --season season-1
 python3 update_tts_assets.py --season season-2
 
-# Update with a changelog note (e.g. when a card is added, removed, or rebalanced)
-python3 update_tts_assets.py --season buffy --note "Added new card to Buffy deck / updated Willow values"
-
-# Update all Evergreen seasons at once (buffy, season-1, season-2)
+# Update all Evergreen seasons at once
 python3 update_tts_assets.py --all
 
-# Preview changes without modifying files or pushing
+# Preview without modifying files or pushing
 python3 update_tts_assets.py --season season-1 --dry-run
 ```
 
-### Changing the Target Tournament Table
-When a new tournament table save is released, update the `TABLE_NAME` variable at the top of `update_tts_assets.py`:
+> **Changing the Target Tournament Table:** Update `TABLE_NAME` at the top of `update_tts_assets.py` whenever a new tournament table save is released.
 
-```python
-TABLE_NAME = "Unmatched Official Tournament Table April 2026 (Stars and Stripes, Hamlet fixed)"
+---
+
+### 2. `update_balance_notes.py` (Manage Local Balance Note Templates & Sync Scoped Changelog)
+Reads the local `balance_notes.md` templates inside each `um_evergreen` season folder and updates the season/character-scoped `## Changelog` below.
+
+- `_BuffyRework/balance_notes.md`
+- `_Season 1/balance_notes.md`
+- `_Season 2/balance_notes.md`
+
+```bash
+# Sync balance notes for a specific season into README.md and push
+python3 update_balance_notes.py --season buffy
+python3 update_balance_notes.py --season season-1
+python3 update_balance_notes.py --season season-2
+
+# Sync all seasons' balance notes
+python3 update_balance_notes.py --all
 ```
 
 ---
@@ -72,14 +86,7 @@ TABLE_NAME = "Unmatched Official Tournament Table April 2026 (Stars and Stripes,
 
 ---
 
-## Changelog
-
-All added, updated, or removed cards/sheets are logged below automatically by `update_tts_assets.py`.
+## Changelog (Scoped by Season & Character)
 
 <!-- CHANGELOG_ENTRIES_START -->
-
-### 2026-10-25 (Initial Import)
-- **Added:** Initial TTS card sheets for `um-evergreen/buffy` (`buffy.png`, `angel.png`, `spike.png`, `willow.png`, `abilities-buffy-set.png` at `v1`).
-- **Added:** Initial TTS card sheets for `um-evergreen/season-1` (`arthur.png`, `bloody-mary.png`, `invisible-man.png`, `jekyll-and-hyde.png`, `medusa.png`, `sherlock.png` at `v1`).
-- **Added:** Initial TTS card sheets for `um-evergreen/season-2` (`beowulf.png`, `bigfoot.png`, `dr-sattler.png`, `ghost-rider.png`, `she-hulk.png`, `spider-man.png`, `winter-soldier.png` at `v1`).
-- **Added:** Initial anonymized TTS assets for `custom-character-1` (`cards-sheet.jpg`, `card-back.jpg`, `character-card-front.png`, `character-card-back.jpg`, `hero-mini.obj`, `health-dial.obj`, `hero-dial.png`, `sidekick-dial.png`, `sidekick-token.obj`, `sidekick-token.jpg` at `v1`).
+<!-- CHANGELOG_ENTRIES_END -->
