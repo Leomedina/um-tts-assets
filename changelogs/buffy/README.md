@@ -4,18 +4,22 @@
 
 ---
 
-## Buffy (`v1` — updated 2026-10-25)
-- **TTS Sheet:** [`assets/um-evergreen/buffy/buffy.png?v=1`](https://raw.githubusercontent.com/Leomedina/um-tts-assets/main/assets/um-evergreen/buffy/buffy.png?v=1)
+## Buffy (`v2` — updated 2026-10-25)
+- **TTS Sheet:** [`assets/um-evergreen/buffy/buffy.png?v=2`](https://raw.githubusercontent.com/Leomedina/um-tts-assets/main/assets/um-evergreen/buffy/buffy.png?v=2)
+- **Version History:** `v1` (2026-10-25), `v2` (2026-10-25)
 - *No balance changes recorded yet (edit `_BuffyRework/balance_notes.md`).*
 
-## Angel (`v1` — updated 2026-10-25)
-- **TTS Sheet:** [`assets/um-evergreen/buffy/angel.png?v=1`](https://raw.githubusercontent.com/Leomedina/um-tts-assets/main/assets/um-evergreen/buffy/angel.png?v=1)
+## Angel (`v2` — updated 2026-10-25)
+- **TTS Sheet:** [`assets/um-evergreen/buffy/angel.png?v=2`](https://raw.githubusercontent.com/Leomedina/um-tts-assets/main/assets/um-evergreen/buffy/angel.png?v=2)
+- **Version History:** `v1` (2026-10-25), `v2` (2026-10-25)
 - *No balance changes recorded yet (edit `_BuffyRework/balance_notes.md`).*
 
-## Spike (`v1` — updated 2026-10-25)
-- **TTS Sheet:** [`assets/um-evergreen/buffy/spike.png?v=1`](https://raw.githubusercontent.com/Leomedina/um-tts-assets/main/assets/um-evergreen/buffy/spike.png?v=1)
+## Spike (`v2` — updated 2026-10-25)
+- **TTS Sheet:** [`assets/um-evergreen/buffy/spike.png?v=2`](https://raw.githubusercontent.com/Leomedina/um-tts-assets/main/assets/um-evergreen/buffy/spike.png?v=2)
+- **Version History:** `v1` (2026-10-25), `v2` (2026-10-25)
 - *No balance changes recorded yet (edit `_BuffyRework/balance_notes.md`).*
 
-## Willow (`v1` — updated 2026-10-25)
-- **TTS Sheet:** [`assets/um-evergreen/buffy/willow.png?v=1`](https://raw.githubusercontent.com/Leomedina/um-tts-assets/main/assets/um-evergreen/buffy/willow.png?v=1)
+## Willow (`v2` — updated 2026-10-25)
+- **TTS Sheet:** [`assets/um-evergreen/buffy/willow.png?v=2`](https://raw.githubusercontent.com/Leomedina/um-tts-assets/main/assets/um-evergreen/buffy/willow.png?v=2)
+- **Version History:** `v1` (2026-10-25), `v2` (2026-10-25)
 - *No balance changes recorded yet (edit `_BuffyRework/balance_notes.md`).*
