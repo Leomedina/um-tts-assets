@@ -18,6 +18,7 @@ Usage examples:
 """
 
 import argparse
+import copy
 import datetime
 import hashlib
 import json
@@ -91,6 +92,7 @@ SEASON_ASSETS: Dict[str, List[dict]] = {
             "repo_rel": "um-evergreen/buffy/abilities-buffy-set.png",
             "fighter_guids": ["758e7d", "8ae8f5", "b9d8a4", "9e79df"],
             "deck_slot": "3",
+            "extra_hero_cards": {"9e79df": [318]},
         },
     ],
     "season-1": [
@@ -301,6 +303,45 @@ def get_table_paths() -> List[Path]:
     return [p for p in candidates if p.exists()]
 
 
+def ensure_extra_hero_cards(bag_obj: dict, extra_card_ids: List[int], deck_slot: str, face_url: str) -> int:
+    """
+    Ensures that a fighter's DeckCustom inside ContainedObjects contains the specified
+    additional hero CardIDs (e.g. Dark Willow CardID 318 alongside Willow CardID 316).
+    Returns the number of hero cards added.
+    """
+    added = 0
+    for outer in bag_obj.get("ContainedObjects", []):
+        for item in outer.get("ContainedObjects", []):
+            if item.get("Name") == "DeckCustom" and isinstance(item.get("DeckIDs"), list):
+                deck_ids: List[int] = item["DeckIDs"]
+                contained: List[dict] = item.setdefault("ContainedObjects", [])
+                # Find an existing hero card in this deck to clone its template/transform
+                template_card = None
+                for c in contained:
+                    if isinstance(c, dict) and deck_slot in c.get("CustomDeck", {}):
+                        template_card = c
+                        break
+
+                for cid in extra_card_ids:
+                    if cid not in deck_ids:
+                        deck_ids.append(cid)
+                        new_card = copy.deepcopy(template_card) if template_card else {
+                            "GUID": f"dw{cid}",
+                            "Name": "Card",
+                            "Nickname": "",
+                            "Description": "",
+                            "CardID": cid,
+                            "CustomDeck": {},
+                        }
+                        new_card["GUID"] = f"dw{cid:04d}"[:6]
+                        new_card["CardID"] = cid
+                        if "CustomDeck" in new_card and deck_slot in new_card["CustomDeck"]:
+                            new_card["CustomDeck"][deck_slot]["FaceURL"] = face_url
+                        contained.append(new_card)
+                        added += 1
+    return added
+
+
 def update_fighter_bag_urls(bag_obj: dict, deck_slot: str, new_url: str) -> int:
     replacements = 0
 
@@ -426,7 +467,7 @@ def main() -> None:
 
     versions = load_versions()
     changed_repo_files: List[str] = []
-    json_updates_to_apply: List[Tuple[str, List[str], str, str]] = []
+    json_updates_to_apply: List[Tuple[str, List[str], str, str, Dict[str, List[int]]]] = []
 
     for season in selected_seasons:
         print(f"\n=== Checking [{season}] ===")
@@ -506,7 +547,7 @@ def main() -> None:
             if spec["fighter_guids"] and spec["deck_slot"]:
                 github_url = f"{GITHUB_RAW_BASE}/{repo_rel}?v={new_ver}"
                 json_updates_to_apply.append(
-                    (name, spec["fighter_guids"], spec["deck_slot"], github_url)
+                    (name, spec["fighter_guids"], spec["deck_slot"], github_url, spec.get("extra_hero_cards", {}))
                 )
 
     if not args.dry_run:
@@ -541,20 +582,25 @@ def main() -> None:
             }
 
             total_replacements = 0
-            for name, guids, deck_slot, url in json_updates_to_apply:
+            for name, guids, deck_slot, url, extra_hero_cards in json_updates_to_apply:
                 asset_replacements = 0
+                cards_added = 0
                 for g in guids:
                     bag = by_guid.get(g)
                     if not bag:
                         print(f"  [WARN] Fighter GUID {g} ({name}) not found in table JSON!")
                         continue
+                    if g in extra_hero_cards:
+                        cards_added += ensure_extra_hero_cards(bag, extra_hero_cards[g], deck_slot, url)
                     asset_replacements += update_fighter_bag_urls(bag, deck_slot, url)
 
-                if asset_replacements > 0:
+                if cards_added > 0:
+                    print(f"  [ADDED CARD  ] {name:24s}: added {cards_added} extra hero card(s) {extra_hero_cards}")
+                if asset_replacements > 0 or cards_added > 0:
                     print(f"  [UPDATED JSON] {name:24s} (slot {deck_slot:>3s}): {asset_replacements:2d} URL(s) -> {url}")
                 else:
                     print(f"  [UP-TO-DATE  ] {name:24s} (slot {deck_slot:>3s}): already at {url}")
-                total_replacements += asset_replacements
+                total_replacements += asset_replacements + cards_added
 
             if total_replacements > 0 and not args.dry_run:
                 with open(table_path, "w", encoding="utf-8") as f:

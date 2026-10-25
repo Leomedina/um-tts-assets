@@ -4,11 +4,15 @@
       {
         "date": "2026-10-25",
         "version": 1
+      },
+      {
+        "date": "2026-10-25",
+        "version": 2
       }
     ],
     "last_updated": "2026-10-25",
-    "sha256": "a653f46fd8506331b0950895769a0a2a9775bfbc7ce177b0cd5456461b894c1d",
-    "version": 1
+    "sha256": "d4f27dc513593eaf059e11ce23e8e14bd3ec299724d88e222d34643573632558",
+    "version": 2
   },
   "um-evergreen/buffy/angel.png": {
     "history": [
