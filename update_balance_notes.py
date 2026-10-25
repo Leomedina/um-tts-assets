@@ -3,17 +3,17 @@
 Script 2 of 2: Balance Notes & Scoped Changelog Generator (`update_balance_notes.py`)
 
 Manages the local per-season `balance_notes.md` templates in `um_evergreen/` and
-syncs the season-scoped, per-character balance changelog into `um-tts-assets/README.md`.
+generates separate per-season changelog files in `um-tts-assets/changelogs/<season>/README.md`.
 
 (For syncing TTS image/model assets and updating the TTS Table JSON, use `update_tts_assets.py`.)
 
 Usage examples:
-  # Sync balance notes for a specific season into README.md and push
+  # Sync balance notes for a specific season into changelogs/<season>/README.md and push
   python3 update_balance_notes.py --season buffy
   python3 update_balance_notes.py --season season-1
   python3 update_balance_notes.py --season season-2
 
-  # Sync all seasons' balance notes into README.md
+  # Sync all seasons' balance notes
   python3 update_balance_notes.py --all
 
   # Ensure local balance_notes.md templates have sections for all characters
@@ -33,18 +33,16 @@ UNMATCHED_DIR = Path("/Users/leomedina/Documents/unmatched")
 EVERGREEN_DIR = UNMATCHED_DIR / "um_evergreen"
 REPO_DIR = UNMATCHED_DIR / "um-tts-assets"
 ASSETS_DIR = REPO_DIR / "assets"
+CHANGELOGS_DIR = REPO_DIR / "changelogs"
 VERSIONS_FILE = REPO_DIR / "versions.json"
-README_FILE = REPO_DIR / "README.md"
 
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Leomedina/um-tts-assets/main/assets"
-
-CHANGELOG_START_MARKER = "<!-- CHANGELOG_ENTRIES_START -->"
-CHANGELOG_END_MARKER = "<!-- CHANGELOG_ENTRIES_END -->"
 
 SEASON_CONFIG: Dict[str, dict] = {
     "buffy": {
         "title": "Buffy Set",
         "notes_file": EVERGREEN_DIR / "_BuffyRework" / "balance_notes.md",
+        "changelog_file": CHANGELOGS_DIR / "buffy" / "README.md",
         "characters": [
             ("Buffy", "um-evergreen/buffy/buffy.png"),
             ("Angel", "um-evergreen/buffy/angel.png"),
@@ -55,6 +53,7 @@ SEASON_CONFIG: Dict[str, dict] = {
     "season-1": {
         "title": "Season 1",
         "notes_file": EVERGREEN_DIR / "_Season 1" / "balance_notes.md",
+        "changelog_file": CHANGELOGS_DIR / "season-1" / "README.md",
         "characters": [
             ("King Arthur", "um-evergreen/season-1/arthur.png"),
             ("Bloody Mary", "um-evergreen/season-1/bloody-mary.png"),
@@ -67,6 +66,7 @@ SEASON_CONFIG: Dict[str, dict] = {
     "season-2": {
         "title": "Season 2",
         "notes_file": EVERGREEN_DIR / "_Season 2" / "balance_notes.md",
+        "changelog_file": CHANGELOGS_DIR / "season-2" / "README.md",
         "characters": [
             ("Beowulf", "um-evergreen/season-2/beowulf.png"),
             ("Bigfoot", "um-evergreen/season-2/bigfoot.png"),
@@ -98,7 +98,7 @@ def ensure_local_template(season_key: str, dry_run: bool) -> None:
             f"# {title} — Balance Notes & Card Changes",
             "",
             "Edit the character sections below whenever you add, remove, or rebalance cards.",
-            f"When you run `python3 update_balance_notes.py --season {season_key}`, non-empty notes here are automatically synced into the GitHub `README.md` changelog under **{title}**.",
+            f"When you run `python3 update_balance_notes.py --season {season_key}`, non-empty notes here are automatically synced into `changelogs/{season_key}/README.md`.",
             "",
         ]
         for char_name, _ in characters:
@@ -197,16 +197,20 @@ def parse_balance_notes(notes_path: Path) -> Dict[str, List[str]]:
     return cleaned_sections
 
 
-def build_season_markdown(season_key: str, versions: Dict[str, dict]) -> str:
+def build_season_changelog_file(season_key: str, versions: Dict[str, dict]) -> str:
     cfg = SEASON_CONFIG[season_key]
     season_title: str = cfg["title"]
     notes_path: Path = cfg["notes_file"]
     balance_by_char = parse_balance_notes(notes_path)
 
-    start_marker = f"<!-- SEASON_CHANGELOG_START:{season_key} -->"
-    end_marker = f"<!-- SEASON_CHANGELOG_END:{season_key} -->"
-
-    out: List[str] = [start_marker, f"### {season_title}", ""]
+    out: List[str] = [
+        f"# {season_title} — Balance Notes & Changelog",
+        "",
+        "[← Back to Main README](../../README.md)",
+        "",
+        "---",
+        "",
+    ]
 
     for char_name, repo_rel in cfg["characters"]:
         dest = ASSETS_DIR / repo_rel
@@ -216,10 +220,10 @@ def build_season_markdown(season_key: str, versions: Dict[str, dict]) -> str:
         history = v_info.get("history", [])
 
         if not dest.exists():
-            out.append(f"#### {char_name} (`Removed`)")
+            out.append(f"## {char_name} (`Removed`)")
             out.append(f"- **Asset Status:** Removed (`assets/{repo_rel}`)")
         else:
-            out.append(f"#### {char_name} (`v{ver}` — updated {last_updated})")
+            out.append(f"## {char_name} (`v{ver}` — updated {last_updated})")
             out.append(f"- **TTS Sheet:** [`assets/{repo_rel}?v={ver}`]({GITHUB_RAW_BASE}/{repo_rel}?v={ver})")
 
         if len(history) > 1:
@@ -234,66 +238,49 @@ def build_season_markdown(season_key: str, versions: Dict[str, dict]) -> str:
 
         out.append("")
 
-    # Also include any custom character sections added to balance_notes.md that aren't in the default list
     known_names = {c[0] for c in cfg["characters"]}
     for extra_char, extra_notes in balance_by_char.items():
         if extra_char not in known_names:
-            out.append(f"#### {extra_char}")
+            out.append(f"## {extra_char}")
             out.extend(extra_notes)
             out.append("")
 
-    out.append(end_marker)
-    return "\n".join(out)
+    return "\n".join(out).rstrip() + "\n"
 
 
-def update_readme_changelog(selected_seasons: List[str], versions: Dict[str, dict], dry_run: bool) -> bool:
-    if not README_FILE.exists():
-        print(f"[!] {README_FILE} not found.")
-        return False
-
-    content = README_FILE.read_text(encoding="utf-8")
-    orig_content = content
-
-    # If the per-season markers don't exist yet inside CHANGELOG_ENTRIES, initialize all 3 blocks
-    if "<!-- SEASON_CHANGELOG_START:" not in content:
-        if CHANGELOG_START_MARKER in content and CHANGELOG_END_MARKER in content:
-            before, rest = content.split(CHANGELOG_START_MARKER, 1)
-            _, after = rest.split(CHANGELOG_END_MARKER, 1)
-            all_blocks = "\n\n".join(
-                build_season_markdown(sk, versions) for sk in ["buffy", "season-1", "season-2"]
-            )
-            content = f"{before}{CHANGELOG_START_MARKER}\n{all_blocks}\n{CHANGELOG_END_MARKER}{after}"
-
-    # Update only the selected season block(s)
+def update_season_changelog_files(selected_seasons: List[str], versions: Dict[str, dict], dry_run: bool) -> List[Path]:
+    updated_files: List[Path] = []
     for season_key in selected_seasons:
-        start_marker = f"<!-- SEASON_CHANGELOG_START:{season_key} -->"
-        end_marker = f"<!-- SEASON_CHANGELOG_END:{season_key} -->"
-        new_block = build_season_markdown(season_key, versions)
-        if start_marker in content and end_marker in content:
-            before, rest = content.split(start_marker, 1)
-            _, after = rest.split(end_marker, 1)
-            content = f"{before}{new_block}{after}"
+        cfg = SEASON_CONFIG[season_key]
+        changelog_path: Path = cfg["changelog_file"]
+        new_content = build_season_changelog_file(season_key, versions)
+        old_content = changelog_path.read_text(encoding="utf-8") if changelog_path.exists() else None
 
-    if content != orig_content:
-        if not dry_run:
-            README_FILE.write_text(content, encoding="utf-8")
-        return True
-    return False
+        if new_content != old_content:
+            updated_files.append(changelog_path)
+            if not dry_run:
+                changelog_path.parent.mkdir(parents=True, exist_ok=True)
+                changelog_path.write_text(new_content, encoding="utf-8")
+            print(f"  [UPDATED CHANGELOG] {changelog_path.relative_to(REPO_DIR)}")
+        else:
+            print(f"  [UP-TO-DATE       ] {changelog_path.relative_to(REPO_DIR)}")
+
+    return updated_files
 
 
-def git_commit_and_push_readme(selected_seasons: List[str], dry_run: bool, no_push: bool) -> None:
+def git_commit_and_push_changelogs(selected_seasons: List[str], dry_run: bool, no_push: bool) -> None:
     if dry_run:
         print("\n[DRY-RUN] Skipping git commit & push.")
         return
 
     subprocess.run(
-        ["git", "add", "README.md", "update_balance_notes.py"],
+        ["git", "add", "changelogs", "README.md", "update_balance_notes.py"],
         cwd=REPO_DIR,
         check=True,
     )
     diff_cached = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=REPO_DIR)
     if diff_cached.returncode == 0:
-        print("\n[GIT] No changes in README.md to commit.")
+        print("\n[GIT] No changelog changes to commit.")
         return
 
     msg = f"Update balance notes changelog ({', '.join(selected_seasons)})"
@@ -308,7 +295,7 @@ def git_commit_and_push_readme(selected_seasons: List[str], dry_run: bool, no_pu
 def main() -> None:
     valid_seasons = list(SEASON_CONFIG.keys())
     parser = argparse.ArgumentParser(
-        description="Manage local per-season balance_notes.md templates and sync season/character changelogs to GitHub README.md."
+        description="Manage local per-season balance_notes.md templates and sync per-season changelog folders in um-tts-assets/changelogs/."
     )
     parser.add_argument(
         "-s",
@@ -331,7 +318,7 @@ def main() -> None:
     parser.add_argument(
         "--no-push",
         action="store_true",
-        help="Commit README.md changes locally but do not push to GitHub.",
+        help="Commit changelog changes locally but do not push to GitHub.",
     )
     parser.add_argument(
         "--dry-run",
@@ -363,13 +350,9 @@ def main() -> None:
         ensure_local_template(s, dry_run=args.dry_run)
 
     versions = load_versions()
-    changed = update_readme_changelog(selected_seasons, versions, dry_run=args.dry_run)
-    if changed:
-        print("\n[README] Updated season/character changelog in README.md.")
-    else:
-        print("\n[README] README.md changelog is already up to date.")
+    update_season_changelog_files(selected_seasons, versions, dry_run=args.dry_run)
 
-    git_commit_and_push_readme(selected_seasons, dry_run=args.dry_run, no_push=args.no_push)
+    git_commit_and_push_changelogs(selected_seasons, dry_run=args.dry_run, no_push=args.no_push)
 
 
 if __name__ == "__main__":
