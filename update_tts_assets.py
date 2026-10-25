@@ -31,7 +31,7 @@ from typing import Dict, List, Set, Tuple
 # ==============================================================================
 # CONFIGURATION — Change TABLE_NAME when a new tournament table is released
 # ==============================================================================
-TABLE_NAME = "Unmatched Official Tournament Table April 2026 (Stars and Stripes, Hamlet fixed)"
+TABLE_NAME = "Unmatched Official Tournament Table October 2026 (Hellboy, v3)"
 
 # Base directories
 UNMATCHED_DIR = Path("/Users/leomedina/Documents/unmatched")
