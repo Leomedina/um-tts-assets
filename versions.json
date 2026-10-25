@@ -19,44 +19,60 @@
       {
         "date": "2026-10-25",
         "version": 1
+      },
+      {
+        "date": "2026-10-25",
+        "version": 2
       }
     ],
     "last_updated": "2026-10-25",
-    "sha256": "04f6946a4544b97347444a3e032e10ed82f4e71904fd1dc4ef38d903a13eb474",
-    "version": 1
+    "sha256": "0eaaa56ff01d89a9fa1828a27cc1f63de9ad41491a0c7a1d5c579a498cc427f0",
+    "version": 2
   },
   "um-evergreen/buffy/buffy.png": {
     "history": [
       {
         "date": "2026-10-25",
         "version": 1
+      },
+      {
+        "date": "2026-10-25",
+        "version": 2
       }
     ],
     "last_updated": "2026-10-25",
-    "sha256": "f349ebbd6e80427fb1a5a5375a7ed6c4b4785650c5e99499d9a6c2f1393bf9d7",
-    "version": 1
+    "sha256": "c5d08a7f96bf37593ed71690d3020eaf8c39ce03b16c3459a9fa917c625d9329",
+    "version": 2
   },
   "um-evergreen/buffy/spike.png": {
     "history": [
       {
         "date": "2026-10-25",
         "version": 1
+      },
+      {
+        "date": "2026-10-25",
+        "version": 2
       }
     ],
     "last_updated": "2026-10-25",
-    "sha256": "b6087f4b8b6351d97d64e9996fbf42afffd38c13ec5ba0ec3d65d562e06fe96b",
-    "version": 1
+    "sha256": "5d454de44cbc10e5eb13bdf21d1b5cabb0bb396230fc763a4d4240bbc282dc32",
+    "version": 2
   },
   "um-evergreen/buffy/willow.png": {
     "history": [
       {
         "date": "2026-10-25",
         "version": 1
+      },
+      {
+        "date": "2026-10-25",
+        "version": 2
       }
     ],
     "last_updated": "2026-10-25",
-    "sha256": "1f5fec8776ec3b069156e2f7b56853b35602826bd309dc1fe90f06b440be1210",
-    "version": 1
+    "sha256": "fffa2a99f98c05a9c48c0c2c9466c9d33d350cd87543a9d213b007211f2a6fc5",
+    "version": 2
   },
   "um-evergreen/season-1/arthur.png": {
     "history": [
