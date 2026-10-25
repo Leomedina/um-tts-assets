@@ -42,12 +42,8 @@ NARUTO_DIR = UNMATCHED_DIR / "Naruto"
 REPO_DIR = UNMATCHED_DIR / "um-tts-assets"
 ASSETS_DIR = REPO_DIR / "assets"
 VERSIONS_FILE = REPO_DIR / "versions.json"
-README_FILE = REPO_DIR / "README.md"
 
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Leomedina/um-tts-assets/main/assets"
-
-INVENTORY_START_MARKER = "<!-- ASSET_INVENTORY_START -->"
-INVENTORY_END_MARKER = "<!-- ASSET_INVENTORY_END -->"
 
 
 # ==============================================================================
@@ -296,44 +292,6 @@ def discover_unmapped_files(season: str, known_sources: Set[Path], known_repo_re
     return extra_specs
 
 
-def build_inventory_markdown(versions: Dict[str, dict]) -> str:
-    lines = [
-        "| Group / Season | Asset | Version | Raw URL |",
-        "| --- | --- | --- | --- |",
-    ]
-    all_files = sorted(ASSETS_DIR.rglob("*"))
-    for f in all_files:
-        if not f.is_file() or f.name.startswith("."):
-            continue
-        rel = f.relative_to(ASSETS_DIR).as_posix()
-        parts = rel.split("/")
-        group = "/".join(parts[:-1])
-        ver = versions.get(rel, {}).get("version", 1)
-        url = f"{GITHUB_RAW_BASE}/{rel}?v={ver}"
-        lines.append(f"| `{group}` | `{parts[-1]}` | `v{ver}` | [Link]({url}) |")
-    return "\n".join(lines)
-
-
-def update_readme_inventory(versions: Dict[str, dict], dry_run: bool) -> bool:
-    if not README_FILE.exists():
-        return False
-
-    content = README_FILE.read_text(encoding="utf-8")
-    if INVENTORY_START_MARKER not in content or INVENTORY_END_MARKER not in content:
-        return False
-
-    before, rest = content.split(INVENTORY_START_MARKER, 1)
-    _, after = rest.split(INVENTORY_END_MARKER, 1)
-    inventory_md = build_inventory_markdown(versions)
-    new_content = f"{before}{INVENTORY_START_MARKER}\n{inventory_md}\n{INVENTORY_END_MARKER}{after}"
-
-    if new_content != content:
-        if not dry_run:
-            README_FILE.write_text(new_content, encoding="utf-8")
-        return True
-    return False
-
-
 def get_table_paths() -> List[Path]:
     filename = TABLE_NAME if TABLE_NAME.endswith(".json") else f"{TABLE_NAME}.json"
     candidates = [
@@ -553,8 +511,6 @@ def main() -> None:
 
     if not args.dry_run:
         save_versions(versions)
-
-    update_readme_inventory(versions=versions, dry_run=args.dry_run)
 
     git_commit_and_push(
         changed_rel_paths=changed_repo_files,
