@@ -1,0 +1,74 @@
+{
+  "um-evergreen/buffy/abilities-buffy-set.png": {
+    "sha256": "a653f46fd8506331b0950895769a0a2a9775bfbc7ce177b0cd5456461b894c1d",
+    "version": 1
+  },
+  "um-evergreen/buffy/angel.png": {
+    "sha256": "04f6946a4544b97347444a3e032e10ed82f4e71904fd1dc4ef38d903a13eb474",
+    "version": 1
+  },
+  "um-evergreen/buffy/buffy.png": {
+    "sha256": "f349ebbd6e80427fb1a5a5375a7ed6c4b4785650c5e99499d9a6c2f1393bf9d7",
+    "version": 1
+  },
+  "um-evergreen/buffy/spike.png": {
+    "sha256": "b6087f4b8b6351d97d64e9996fbf42afffd38c13ec5ba0ec3d65d562e06fe96b",
+    "version": 1
+  },
+  "um-evergreen/buffy/willow.png": {
+    "sha256": "1f5fec8776ec3b069156e2f7b56853b35602826bd309dc1fe90f06b440be1210",
+    "version": 1
+  },
+  "um-evergreen/season-1/arthur.png": {
+    "sha256": "b109f323a53a8c20cb029057b37e3f70ad3d67559fb1d52b1e7bd64eb88d062d",
+    "version": 1
+  },
+  "um-evergreen/season-1/bloody-mary.png": {
+    "sha256": "699678b5fd6c809a58421ffbadc76cdcdfbd918b780a854a1d81c5ade9ff6b83",
+    "version": 1
+  },
+  "um-evergreen/season-1/invisible-man.png": {
+    "sha256": "63f3a8e4c8ec7dfbb5b1de36ba99607077ce4f912b91b759ff190d2c2f4ef106",
+    "version": 1
+  },
+  "um-evergreen/season-1/jekyll-and-hyde.png": {
+    "sha256": "374d54897ac79c360be417f85e3ee8a612a25fd23142fcb150baca65c8e3663b",
+    "version": 1
+  },
+  "um-evergreen/season-1/medusa.png": {
+    "sha256": "d458fc1a31a4a7d322847deca03856a8a61d04bd575ef8ed855cc43a40d12c38",
+    "version": 1
+  },
+  "um-evergreen/season-1/sherlock.png": {
+    "sha256": "4200e92589d356b7c822561fd48ab981adbd1c15fab01fcc733fa893971c75d2",
+    "version": 1
+  },
+  "um-evergreen/season-2/beowulf.png": {
+    "sha256": "13e40f519bf4e7d9f20e090065a1d929393d05759e87b95a6a33fe6beabbf44f",
+    "version": 1
+  },
+  "um-evergreen/season-2/bigfoot.png": {
+    "sha256": "09ca51ebee2fad17e68315ab1c0d63248d4c0ce6bb4b323a9532432279ea81ae",
+    "version": 1
+  },
+  "um-evergreen/season-2/dr-sattler.png": {
+    "sha256": "0cca9bf11f09dd11bb5f76968a83ee6521de04e2489086364db228aa5839dea7",
+    "version": 1
+  },
+  "um-evergreen/season-2/ghost-rider.png": {
+    "sha256": "401d2a4980144307fdea4be3f84582a8a2cc95cd59e86c5a838c8f5a705091ec",
+    "version": 1
+  },
+  "um-evergreen/season-2/she-hulk.png": {
+    "sha256": "1a7110b52aabb8900afe6e0dd2cbe1ea0040c0b0e83107e92caa2e1619ec88a2",
+    "version": 1
+  },
+  "um-evergreen/season-2/spider-man.png": {
+    "sha256": "accdb4026e69ff7881121f67dbfe419f525d669fe10d84856b26f4050fddb769",
+    "version": 1
+  },
+  "um-evergreen/season-2/winter-soldier.png": {
+    "sha256": "af1f0897d09440cef7c8f0a8736fcd627b9ade43763833b40985d39527cfc116",
+    "version": 1
+  }
+}
